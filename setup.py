@@ -1,5 +1,5 @@
-from setuptools import setup, find_packages
 import re
+from setuptools import setup, find_packages
 
 VERSIONFILE = "torch_mir_eval/_version.py"
 verstrline = open(VERSIONFILE, "rt").read()
