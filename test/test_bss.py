@@ -4,7 +4,6 @@ from timeit import default_timer
 
 import torch
 import mir_eval.separation
-import librosa
 import torch_mir_eval
 import numpy as np
 
@@ -34,14 +33,6 @@ def cuda_timing(func):
 
 class TestBSS(unittest.TestCase):
     def setUp(self) -> None:
-        filename = librosa.util.example_audio_file()
-
-        y, sr = librosa.load(filename, sr=None, duration=2.)
-        # self.src = y[:44000].astype(np.float64)
-        # self.src = np.stack([self.src, y[20000:64000].astype(np.float64)])
-        # self.est = y[40000:84000].astype(np.float64)
-        # self.est = np.stack([self.est, y[10000:54000].astype(np.float64)])
-
         N = 5
         self.src = np.random.rand(N, 44000).astype(np.float64)
         self.est = np.random.rand(N, 44000).astype(np.float64)
