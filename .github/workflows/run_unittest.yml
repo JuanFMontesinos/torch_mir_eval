@@ -34,5 +34,5 @@ jobs:
         coverage run --source=./torch_mir_eval test.py
     - name: Coverage report
       run: |
-        - coverage report
-        - coveralls
+        coverage report
+        coveralls
