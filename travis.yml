@@ -4,7 +4,7 @@ python:
 os:
   - linux
 install:
-  - pip install -q -r requirements.txt
+  - pip install -q -r requirements-dev.txt
   - pip install coverage
   - pip install coveralls
 script:
