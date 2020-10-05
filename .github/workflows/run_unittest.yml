@@ -32,13 +32,6 @@ jobs:
     - name: Source code tests
       run: |
         coverage run --source=./torch_mir_eval test.py
-    # This tends to fail despite the code works, when Zenodo is slow.
-    - name: Model-sharing tests
-      run: |
-        coverage run -a -m py.test tests/models/publish_test.py
-      env:  # Access token as an env variable
-        ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
-
     - name: Coverage report
       run: |
         - coverage report
