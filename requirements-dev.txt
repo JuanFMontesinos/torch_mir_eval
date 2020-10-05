@@ -2,3 +2,5 @@ librosa
 torch==1.6
 mir_eval
 numpy
+coverage
+coveralls
