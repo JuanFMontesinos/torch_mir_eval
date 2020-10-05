@@ -1,6 +1,5 @@
 import unittest
-from contextlib import contextmanager
-from timeit import default_timer
+
 
 import torch
 import mir_eval.separation
@@ -8,27 +7,7 @@ import torch_mir_eval
 import numpy as np
 
 
-@contextmanager
-def elapsed_timer():
-    start = default_timer()
-    elapser = lambda: default_timer() - start
-    yield lambda: elapser()
-    end = default_timer()
-    elapser = lambda: end - start
-
-
-def cuda_timing(func):
-    def inner(*args, **kwargs):
-        start = torch.cuda.Event(enable_timing=True)
-        end = torch.cuda.Event(enable_timing=True)
-        start.record()
-        output = func(*args, **kwargs)
-        end.record()
-        torch.cuda.synchronize()
-        time = start.elapsed_time(end)
-        return output, time / 1000
-
-    return inner
+from utils import *
 
 
 class TestBSS(unittest.TestCase):
@@ -44,8 +23,10 @@ class TestBSS(unittest.TestCase):
         with elapsed_timer() as elapsed:
             w = mir_eval.separation.bss_eval_sources(self.src, self.est, compute_permutation=False)
         mir_eval_timing = elapsed()
-        bss_eval_sources = cuda_timing(torch_mir_eval.bss_eval_sources)
-        torch_metrics, torch_timing = bss_eval_sources(src, est, compute_permutation=False)
+        bss_eval_sources = torch_mir_eval.bss_eval_sources
+        with elapsed_timer() as elapsed:
+            torch_metrics = bss_eval_sources(src, est, compute_permutation=False)
+        torch_timing = elapsed()
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
         self.assertTrue(np.allclose(w, torch_metrics, rtol=1e-3))
         print(f'bss_eval_sources test...\t'
@@ -59,8 +40,10 @@ class TestBSS(unittest.TestCase):
         with elapsed_timer() as elapsed:
             w = mir_eval.separation.bss_eval_sources(self.src, self.est, compute_permutation=True)
         mir_eval_timing = elapsed()
-        bss_eval_sources = cuda_timing(torch_mir_eval.bss_eval_sources)
-        torch_metrics, torch_timing = bss_eval_sources(src, est, compute_permutation=True)
+        bss_eval_sources = torch_mir_eval.bss_eval_sources
+        with elapsed_timer() as elapsed:
+            torch_metrics = bss_eval_sources(src, est, compute_permutation=True)
+        torch_timing = elapsed()
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
         self.assertTrue(np.allclose(w, torch_metrics, rtol=1e-3))
         print(f'bss_eval_sources test...\t'
