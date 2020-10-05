@@ -4,11 +4,11 @@ python:
 os:
   - linux
 install:
-  - pip install -q -r requirements-dev.txt
+  - pip install -q -r requirements.txt
   - pip install coverage
   - pip install coveralls
 script:
-  - coverage run --source=./flerken test.py
+  - coverage run --source=./torch_mir_eval test.py
 after_success:
   - coverage report
   - coveralls

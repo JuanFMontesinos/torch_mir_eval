@@ -37,14 +37,14 @@ class TestBSS(unittest.TestCase):
         filename = librosa.util.example_audio_file()
 
         y, sr = librosa.load(filename, sr=None, duration=2.)
-        self.src = y[:44000].astype(np.float64)
-        self.src = np.stack([self.src, y[20000:64000].astype(np.float64)])
-        self.est = y[40000:84000].astype(np.float64)
-        self.est = np.stack([self.est, y[10000:54000].astype(np.float64)])
+        # self.src = y[:44000].astype(np.float64)
+        # self.src = np.stack([self.src, y[20000:64000].astype(np.float64)])
+        # self.est = y[40000:84000].astype(np.float64)
+        # self.est = np.stack([self.est, y[10000:54000].astype(np.float64)])
 
         N = 5
-        # self.src = np.random.rand(N, 44000).astype(np.float64)
-        # self.est = np.random.rand(N, 44000).astype(np.float64)
+        self.src = np.random.rand(N, 44000).astype(np.float64)
+        self.est = np.random.rand(N, 44000).astype(np.float64)
 
     def test_bss_eval_sources_permutation_false(self):
         src = torch.from_numpy(self.src.copy()).cuda()
