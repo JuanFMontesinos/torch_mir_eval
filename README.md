@@ -21,3 +21,6 @@ bss_eval_sources test...	compute_permutation: True	CPU: 54.358	GPU: 7.257
 ```
 
 
+## How to contribute  
+- Implementing https://github.com/JuanFMontesinos/torch_mir_eval/blob/52bf8f221d1f603520a13ad792bf4d22b558452a/torch_mir_eval/separation.py#L39 toeplitz matrix in pytorch.
+- Implementing any other function from original `mir_eval`
