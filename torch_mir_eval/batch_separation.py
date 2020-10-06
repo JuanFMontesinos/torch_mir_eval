@@ -36,21 +36,16 @@ References
 
 import itertools
 import warnings
+from math import log2, ceil
 
-import numpy as np
 import torch
 
-from .toeplitz import toeplitz
+from .toeplitz import toeplitz, batch_toeplitz
 
 # The maximum allowable number of sources (prevents insane computational load)
 MAX_SOURCES = 100
 
 __all__ = ['bss_eval_sources']
-
-
-def eval(cuda, nparr):
-    cuda = cuda.cpu().numpy()
-    return np.abs(cuda - nparr).mean(), np.abs(cuda - nparr).max()
 
 
 def validate(reference_sources: torch.Tensor, estimated_sources: torch.Tensor):
@@ -109,6 +104,7 @@ def validate(reference_sources: torch.Tensor, estimated_sources: torch.Tensor):
                          f'override this check, set '
                          f'mir_eval.separation.MAX_SOURCES to a '
                          f'larger value.')
+
 
 def _any_source_silent(sources):
     """Returns true if the parameter sources has any silent first dimensions"""
@@ -176,17 +172,25 @@ def bss_eval_sources(reference_sources, estimated_sources,
     # make sure the input is of shape (nsrc, nsampl)
     if estimated_sources.ndim == 1:
         estimated_sources = estimated_sources[None, :]
+    elif estimated_sources.ndim == 2:
+        estimated_sources = estimated_sources[None, None, :]
+
     if reference_sources.ndim == 1:
         reference_sources = reference_sources[None, :]
-
+    elif reference_sources.ndim == 2:
+        reference_sources = reference_sources[None, None, :]
     validate(reference_sources, estimated_sources)
+
+    # Permuting to shape nsrc,b,nsample for readability
+    estimated_sources = estimated_sources.permute(1, 0, 2).contiguous()
+    reference_sources = reference_sources.permute(1, 0, 2).contiguous()
     # If empty matrices were supplied, return empty lists (special case)
     if reference_sources.size == 0 or estimated_sources.size == 0:
         return torch.Tensor([]), torch.Tensor([]), torch.Tensor([]), torch.Tensor([])
 
-    nsrc = estimated_sources.shape[0]
+    nsrc, b, _ = estimated_sources.shape
 
-    # does user desire permutations?
+    # TODO
     if compute_permutation:
         # compute criteria for all possible pair matches
         sdr = torch.empty((nsrc, nsrc))
@@ -213,9 +217,9 @@ def bss_eval_sources(reference_sources, estimated_sources,
     else:
         # compute criteria for only the simple correspondence
         # (estimate 1 is estimate corresponding to reference source 1, etc.)
-        sdr = torch.empty(nsrc)
-        sir = torch.empty(nsrc)
-        sar = torch.empty(nsrc)
+        sdr = torch.empty(nsrc, b)
+        sir = torch.empty(nsrc, b)
+        sar = torch.empty(nsrc, b)
         for j in range(nsrc):
             s_true, e_spat, e_interf, e_artif = \
                 _bss_decomp_mtifilt(reference_sources,
@@ -225,29 +229,31 @@ def bss_eval_sources(reference_sources, estimated_sources,
                 _bss_source_crit(s_true, e_spat, e_interf, e_artif)
 
         # return the default permutation for compatibility
-        popt = torch.arange(nsrc)
-        return (sdr, sir, sar, popt)
+        popt = torch.arange(nsrc).unsqueeze(1).expand_as(sdr)
+        return sdr.T, sir.T, sar.T, popt
 
 
-def _bss_decomp_mtifilt(reference_sources, estimated_source, j, flen):
+def _bss_decomp_mtifilt(reference_sources: torch.Tensor, estimated_source: torch.Tensor, j: int, flen: int):
     """Decomposition of an estimated source image into four components
     representing respectively the true source image, spatial (or filtering)
     distortion, interference and artifacts, derived from the true source
     images using multichannel time-invariant filters.
     """
-    nsampl = estimated_source.size()[0]
+    nsrc, b, nsampl = reference_sources.shape
     # decomposition
     # true source image
-    s_true = torch.cat((reference_sources[j], torch.zeros(flen - 1, device=reference_sources.device)))
+    s_true = torch.cat((reference_sources[j], torch.zeros(b, flen - 1,
+                                                          device=reference_sources.device,
+                                                          dtype=reference_sources.dtype)), dim=-1)
     # spatial (or filtering) distortion
-    e_spat = _project(reference_sources[j, np.newaxis, :], estimated_source,
+    e_spat = _project(reference_sources[j, None, ...], estimated_source,
                       flen) - s_true
     # interference
     e_interf = _project(reference_sources,
                         estimated_source, flen) - s_true - e_spat  # artifacts
     e_artif = -s_true - e_spat - e_interf
-    e_artif[:nsampl] += estimated_source
-    return (s_true, e_spat, e_interf, e_artif)
+    e_artif[:, :nsampl] += estimated_source
+    return s_true, e_spat, e_interf, e_artif
 
 
 def _fix_shape(x, n, axis):
@@ -266,51 +272,61 @@ def _project(reference_sources, estimated_source, flen):
     """Least-squares projection of estimated source on the subspace spanned by
     delayed versions of reference sources, with delays between 0 and flen-1
     """
-    nsrc = reference_sources.shape[0]
-    nsampl = reference_sources.shape[1]
+
+    nsrc, b, nsampl = reference_sources.shape
+    def_kw = {'device': reference_sources.device, 'dtype': torch.float64}
+    kw = {'device': reference_sources.device, 'dtype': reference_sources.dtype}
 
     # computing coefficients of least squares problem via FFT ##
     # zero padding and FFT of input data
     reference_sources = torch.cat((reference_sources,
-                                   torch.zeros((nsrc, flen - 1), device=reference_sources.device)), dim=1)
-    estimated_source = torch.cat((estimated_source, torch.zeros(flen - 1, device=estimated_source.device)), dim=0)
-    n_fft = int(2 ** np.ceil(np.log2(nsampl + flen - 1.)))
-    rs = _fix_shape(reference_sources, n_fft, 1)  # Padding like scipy.fftpack.fft does
+                                   torch.zeros((nsrc, b, flen - 1), **kw)), dim=-1)
+
+    estimated_source = torch.cat((estimated_source, torch.zeros(b, flen - 1, **kw)), dim=-1)
+    n_fft = int(2 ** ceil(log2(nsampl + flen - 1.)))
+    rs = _fix_shape(reference_sources, n_fft, -1)  # Padding like scipy.fftpack.fft does
     sf = torch.rfft(rs, signal_ndim=1, onesided=False)
     sf = torch.view_as_complex(sf)
-    es = _fix_shape(estimated_source, n_fft, 0)  # Padding like scipy.fftpack.fft does
+    es = _fix_shape(estimated_source, n_fft, -1)  # Padding like scipy.fftpack.fft does
     sef = torch.rfft(es, signal_ndim=1, onesided=False)
     sef = torch.view_as_complex(sef)
     # inner products between delayed versions of reference_sources
-    G = torch.zeros((nsrc * flen, nsrc * flen), device=reference_sources.device, dtype=torch.float64)
+    G = torch.zeros((b, nsrc * flen, nsrc * flen), **kw)
     for i in range(nsrc):
         for j in range(nsrc):
             ssf = sf[i] * torch.conj(sf[j])
             ssf = torch.ifft(torch.view_as_real(ssf), signal_ndim=1)[..., 0]
-            ss = toeplitz(torch.cat((ssf[0].unsqueeze(0), ssf.flip(0)[0:flen - 1]), dim=0), r=ssf[:flen])
-            G[i * flen: (i + 1) * flen, j * flen: (j + 1) * flen] = ss
-            G[j * flen: (j + 1) * flen, i * flen: (i + 1) * flen] = ss.T
+            ss = batch_toeplitz(
+                c=torch.cat((ssf[:, 0].unsqueeze(1), ssf.flip(1)[:, 0:flen - 1]), dim=-1),
+                r=ssf[:, :flen].unsqueeze(1))
+            G[:, i * flen: (i + 1) * flen, j * flen: (j + 1) * flen] = ss
+            G[:, j * flen: (j + 1) * flen, i * flen: (i + 1) * flen] = ss.permute(0, 2, 1)
     # inner products between estimated_source and delayed versions of
     # reference_sources
 
-    D = torch.zeros(nsrc * flen, device=reference_sources.device, dtype=torch.float64)
+    D = torch.zeros(b, nsrc * flen, **kw)
     for i in range(nsrc):
         ssef = sf[i] * torch.conj(sef)
         ssef = torch.ifft(torch.view_as_real(ssef), signal_ndim=1)[..., 0]
-        D[i * flen: (i + 1) * flen] = torch.cat((ssef[0].unsqueeze(0), ssef.flip(0)[0:flen - 1]), dim=0)
+        D[:, i * flen: (i + 1) * flen] = torch.cat((ssef[:, 0].unsqueeze(1), ssef.flip(1)[:, 0:flen - 1]), dim=-1)
 
     # Computing projection
     # Distortion filters
-    if torch.det(G) > 0.1:
-        C = torch.solve(D.unsqueeze(1), G).solution.reshape(nsrc, flen).T
+    if all(torch.det(G) > 0.1):
+        C = torch.solve(D.unsqueeze(-1), G).solution.reshape(b, nsrc, flen).permute(0, 2, 1)
     else:
-        C = torch.lstsq(D.unsqueeze(1), G).solution.reshape(nsrc, flen).T
+        solutions = []
+        for d, g in zip(D, G):
+            c = torch.lstsq(d.unsqueeze(1), g).solution.reshape(b, nsrc, flen).permute(0, 2, 1)
+            solutions.append(c)
+        C = torch.stack(c)
     # Filtering
-    sproj = torch.zeros(nsampl + flen - 1, device=reference_sources.device)
-    for i in range(nsrc):
-        sproj += torch.nn.functional.conv1d(reference_sources[i][:-flen + 1][None, None, ...],
-                                            C[:, i].flip([0])[None, None, ...],
-                                            padding=flen - 1)[0, 0]
+    sproj = torch.zeros(b, nsampl + flen - 1, **kw)
+    for j in range(b):
+        for i in range(nsrc):
+            sproj[j, ...] += torch.nn.functional.conv1d(reference_sources[i, j][:-flen + 1][None, None, ...],
+                                                        C[j, :, i].flip([0])[None, None, ...],
+                                                        padding=flen - 1)[0, 0]
 
     return sproj
 
@@ -321,17 +337,7 @@ def _bss_source_crit(s_true, e_spat, e_interf, e_artif):
     """
     # energy ratios
     s_filt = s_true + e_spat
-    sdr = _safe_db(torch.sum(s_filt ** 2), torch.sum((e_interf + e_artif) ** 2))
-    sir = _safe_db(torch.sum(s_filt ** 2), torch.sum(e_interf ** 2))
-    sar = _safe_db(torch.sum((s_filt + e_interf) ** 2), torch.sum(e_artif ** 2))
-    return (sdr, sir, sar)
-
-
-def _safe_db(num, den):
-    """Properly handle the potential +Inf db SIR, instead of raising a
-    RuntimeWarning. Only denominator is checked because the numerator can never
-    be 0.
-    """
-    if den == 0:
-        return torch.Tensor([float('inf')])
-    return 10 * torch.log10(num / den)
+    sdr = 10*torch.log10(torch.sum(s_filt ** 2, dim=1) / torch.sum((e_interf + e_artif) ** 2, dim=1))
+    sir = 10*torch.log10(torch.sum(s_filt ** 2, dim=1) / torch.sum(e_interf ** 2, dim=1))
+    sar = 10*torch.log10(torch.sum((s_filt + e_interf) ** 2, dim=1) / torch.sum(e_artif ** 2, dim=1))
+    return sdr, sir, sar
