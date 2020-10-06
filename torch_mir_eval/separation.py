@@ -34,11 +34,13 @@ References
 
 '''
 
-import numpy as np
-import torch
-from .toeplitz import toeplitz
 import itertools
 import warnings
+
+import numpy as np
+import torch
+
+from .toeplitz import toeplitz
 
 # The maximum allowable number of sources (prevents insane computational load)
 MAX_SOURCES = 100
@@ -118,7 +120,6 @@ def _any_source_silent(sources):
     return torch.any(torch.sum(sources, dim=1) == 0)
 
 
-@torch.no_grad()
 def bss_eval_sources(reference_sources, estimated_sources,
                      compute_permutation=True):
     """

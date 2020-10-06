@@ -7,7 +7,7 @@ import numpy as np
 
 from utils import *
 
-BACKPROP = False
+BACKPROP = True
 
 
 class TestBSS(unittest.TestCase):
@@ -84,7 +84,7 @@ class TestBSS(unittest.TestCase):
               f'CPU: {mir_eval_timing:.3f}\t'
               f'GPU: {torch_timing:.3f}')
 
-    @unittest.skipIf(BACKPROP == False, 'System not yet backpropagable')
+    @unittest.skipIf(BACKPROP is False, 'System non backpropagable')
     def test_bss_eval_gradient_flow(self):
         with torch.autograd.detect_anomaly():
             src = torch.from_numpy(self.src[:2].copy()).requires_grad_()
