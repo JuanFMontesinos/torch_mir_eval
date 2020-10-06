@@ -8,7 +8,6 @@
 
 
 Pytorch implementation of [mir_eval](https://craffel.github.io/mir_eval/).
-Not backpropagable.
 Algorithm is ~ 5 times faster  
 Tests carried out using torch.Float64, Nvidia Quadro P6000, ADM Threadripper 1920X for a single run
 
