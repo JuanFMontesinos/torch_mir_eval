@@ -17,10 +17,10 @@ Tests carried out using torch.Float64, Nvidia Quadro P6000, ADM Threadripper 192
 
 
 ```
-bss_eval_sources test...	Compute permutation: False	CPU: 4.324	torch-CPU: 5.121
-.bss_eval_sources test...	Compute permutation: False	CPU: 9.711	GPU: 2.250
-..bss_eval_sources test...	compute_permutation: True	CPU: 38.775	torch-CPU: 37.519
-bss_eval_sources test...	compute_permutation: True	CPU: 54.358	GPU: 7.257
+bss_eval_sources test...	Compute permutation: False	CPU: 3.834	torch-CPU: 4.696
+bss_eval_sources test...	Compute permutation: False	CPU: 3.902	GPU: 1.629
+bss_eval_sources test...	compute_permutation: True	CPU: 21.478	torch-CPU: 22.758
+bss_eval_sources test...	compute_permutation: True	CPU: 19.259	GPU: 7.834
 *Sources vary across tests  
 ** Tolerance <= 1e-3
 ```
@@ -33,7 +33,6 @@ import torch_mir_eval as mir_eval
 Just pass tensors instead of numpy arrays. Everything else is the same.  
 
 ## How to contribute  
-- Implementing https://github.com/JuanFMontesinos/torch_mir_eval/blob/52bf8f221d1f603520a13ad792bf4d22b558452a/torch_mir_eval/separation.py#L39 toeplitz matrix in pytorch.
 - Implementing any other function from the original `mir_eval`
 
 ## Changelog  

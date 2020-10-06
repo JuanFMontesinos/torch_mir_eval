@@ -36,8 +36,7 @@ References
 
 import numpy as np
 import torch
-from scipy.linalg import toeplitz
-
+from .toeplitz import toeplitz
 import itertools
 import warnings
 
@@ -292,8 +291,7 @@ def _project(reference_sources, estimated_source, flen):
         for j in range(nsrc):
             ssf = sf[i] * torch.conj(sf[j])
             ssf = torch.ifft(torch.view_as_real(ssf), signal_ndim=1)[..., 0]
-            ss = torch.from_numpy(toeplitz(np.hstack((ssf[0].cpu().numpy(), ssf.cpu().numpy()[-1:-flen:-1])),
-                                           r=ssf[:flen].cpu().numpy())).to(ssf.device)
+            ss = toeplitz(torch.cat((ssf[0].unsqueeze(0), ssf.flip(0)[0:flen - 1]), dim=0), r=ssf[:flen])
             G[i * flen: (i + 1) * flen, j * flen: (j + 1) * flen] = ss
             G[j * flen: (j + 1) * flen, i * flen: (i + 1) * flen] = ss.T
     # inner products between estimated_source and delayed versions of
