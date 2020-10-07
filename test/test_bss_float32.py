@@ -13,8 +13,8 @@ BACKPROP = True
 class TestBSS(unittest.TestCase):
     def setUp(self) -> None:
         N = 5
-        self.src = np.random.rand(N, 44000).astype(np.float64)
-        self.est = np.random.rand(N, 44000).astype(np.float64)
+        self.src = np.random.rand(N, 44000).astype(np.float32)
+        self.est = np.random.rand(N, 44000).astype(np.float32)
 
     # CPU TESTS
     def test_bss_eval_sources_permutation_false_cpu(self):
@@ -28,7 +28,7 @@ class TestBSS(unittest.TestCase):
             torch_metrics = bss_eval_sources(src, est, compute_permutation=False)
         torch_timing = elapsed()
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
-        self.assertTrue(np.allclose(w, torch_metrics, rtol=1e-3))
+        self.assertTrue(np.allclose(w, torch_metrics))
         print(f'bss_eval_sources test...\t'
               f'Compute permutation: False\t'
               f'CPU: {mir_eval_timing:.3f}\t'
@@ -45,7 +45,7 @@ class TestBSS(unittest.TestCase):
             torch_metrics = bss_eval_sources(src, est, compute_permutation=True)
         torch_timing = elapsed()
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
-        self.assertTrue(np.allclose(w, torch_metrics, rtol=1e-3))
+        self.assertTrue(np.allclose(w, torch_metrics))
         print(f'bss_eval_sources test...\t'
               f'compute_permutation: True\t'
               f'CPU: {mir_eval_timing:.3f}\t'
@@ -62,7 +62,7 @@ class TestBSS(unittest.TestCase):
         bss_eval_sources = cuda_timing(torch_mir_eval.bss_eval_sources)
         torch_metrics, torch_timing = bss_eval_sources(src, est, compute_permutation=False)
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
-        self.assertTrue(np.allclose(w, torch_metrics, rtol=1e-3))
+        self.assertTrue(np.allclose(w, torch_metrics))
         print(f'bss_eval_sources test...\t'
               f'Compute permutation: False\t'
               f'CPU: {mir_eval_timing:.3f}\t'
@@ -78,7 +78,7 @@ class TestBSS(unittest.TestCase):
         bss_eval_sources = cuda_timing(torch_mir_eval.bss_eval_sources)
         torch_metrics, torch_timing = bss_eval_sources(src, est, compute_permutation=True)
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
-        self.assertTrue(np.allclose(w, torch_metrics, rtol=1e-3))
+        self.assertTrue(np.allclose(w, torch_metrics))
         print(f'bss_eval_sources test...\t'
               f'compute_permutation: True\t'
               f'CPU: {mir_eval_timing:.3f}\t'

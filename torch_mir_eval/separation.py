@@ -36,8 +36,8 @@ References
 
 import itertools
 import warnings
+from math import ceil, log2
 
-import numpy as np
 import torch
 
 from .toeplitz import toeplitz
@@ -46,11 +46,6 @@ from .toeplitz import toeplitz
 MAX_SOURCES = 100
 
 __all__ = ['bss_eval_sources']
-
-
-def eval(cuda, nparr):
-    cuda = cuda.cpu().numpy()
-    return np.abs(cuda - nparr).mean(), np.abs(cuda - nparr).max()
 
 
 def validate(reference_sources, estimated_sources):
@@ -245,7 +240,7 @@ def _bss_decomp_mtifilt(reference_sources, estimated_source, j, flen):
     # true source image
     s_true = torch.cat((reference_sources[j], torch.zeros(flen - 1, device=reference_sources.device)))
     # spatial (or filtering) distortion
-    e_spat = _project(reference_sources[j, np.newaxis, :], estimated_source,
+    e_spat = _project(reference_sources[j, None, :], estimated_source,
                       flen) - s_true
     # interference
     e_interf = _project(reference_sources,
@@ -267,27 +262,8 @@ def _fix_shape(x, n, axis):
     return z
 
 
-def _project(reference_sources, estimated_source, flen):
-    """Least-squares projection of estimated source on the subspace spanned by
-    delayed versions of reference sources, with delays between 0 and flen-1
-    """
-    nsrc = reference_sources.shape[0]
-    nsampl = reference_sources.shape[1]
-
-    # computing coefficients of least squares problem via FFT ##
-    # zero padding and FFT of input data
-    reference_sources = torch.cat((reference_sources,
-                                   torch.zeros((nsrc, flen - 1), device=reference_sources.device)), dim=1)
-    estimated_source = torch.cat((estimated_source, torch.zeros(flen - 1, device=estimated_source.device)), dim=0)
-    n_fft = int(2 ** np.ceil(np.log2(nsampl + flen - 1.)))
-    rs = _fix_shape(reference_sources, n_fft, 1)  # Padding like scipy.fftpack.fft does
-    sf = torch.rfft(rs, signal_ndim=1, onesided=False)
-    sf = torch.view_as_complex(sf)
-    es = _fix_shape(estimated_source, n_fft, 0)  # Padding like scipy.fftpack.fft does
-    sef = torch.rfft(es, signal_ndim=1, onesided=False)
-    sef = torch.view_as_complex(sef)
-    # inner products between delayed versions of reference_sources
-    G = torch.zeros((nsrc * flen, nsrc * flen), device=reference_sources.device, dtype=torch.float64)
+def _calc_G(sf, nsrc, flen, **kw):
+    G = torch.zeros((nsrc * flen, nsrc * flen), **kw)
     for i in range(nsrc):
         for j in range(nsrc):
             ssf = sf[i] * torch.conj(sf[j])
@@ -295,14 +271,43 @@ def _project(reference_sources, estimated_source, flen):
             ss = toeplitz(torch.cat((ssf[0].unsqueeze(0), ssf.flip(0)[0:flen - 1]), dim=0), r=ssf[:flen])
             G[i * flen: (i + 1) * flen, j * flen: (j + 1) * flen] = ss
             G[j * flen: (j + 1) * flen, i * flen: (i + 1) * flen] = ss.T
-    # inner products between estimated_source and delayed versions of
-    # reference_sources
 
-    D = torch.zeros(nsrc * flen, device=reference_sources.device, dtype=torch.float64)
+    return G
+
+
+def _calc_D(sf, sef, nsrc, flen, **kw):
+    D = torch.zeros(nsrc * flen, **kw)
     for i in range(nsrc):
         ssef = sf[i] * torch.conj(sef)
         ssef = torch.ifft(torch.view_as_real(ssef), signal_ndim=1)[..., 0]
         D[i * flen: (i + 1) * flen] = torch.cat((ssef[0].unsqueeze(0), ssef.flip(0)[0:flen - 1]), dim=0)
+    return D
+
+
+def _project(reference_sources, estimated_source, flen):
+    """Least-squares projection of estimated source on the subspace spanned by
+    delayed versions of reference sources, with delays between 0 and flen-1
+    """
+    nsrc = reference_sources.shape[0]
+    nsampl = reference_sources.shape[1]
+    kw = {'device': reference_sources.device, "dtype": reference_sources.dtype}
+    # computing coefficients of least squares problem via FFT ##
+    # zero padding and FFT of input data
+    reference_sources = torch.cat((reference_sources,
+                                   torch.zeros((nsrc, flen - 1), **kw)), dim=1)
+    estimated_source = torch.cat((estimated_source, torch.zeros(flen - 1, **kw)), dim=0)
+    n_fft = int(2 ** ceil(log2(nsampl + flen - 1.)))
+    rs = _fix_shape(reference_sources, n_fft, -1)  # Padding like scipy.fftpack.fft does
+    sf = torch.rfft(rs, signal_ndim=1, onesided=False)
+    sf = torch.view_as_complex(sf)
+    es = _fix_shape(estimated_source, n_fft, -1)  # Padding like scipy.fftpack.fft does
+    sef = torch.rfft(es, signal_ndim=1, onesided=False)
+    sef = torch.view_as_complex(sef)
+    # inner products between delayed versions of reference_sources
+    D = _calc_D(sf, sef, nsrc, flen, **kw)
+    # inner products between estimated_source and delayed versions of
+    # reference_sources
+    G = _calc_G(sf, nsrc, flen, **kw)
 
     # Computing projection
     # Distortion filters
@@ -311,7 +316,7 @@ def _project(reference_sources, estimated_source, flen):
     else:
         C = torch.lstsq(D.unsqueeze(1), G).solution.reshape(nsrc, flen).T
     # Filtering
-    sproj = torch.zeros(nsampl + flen - 1, device=reference_sources.device)
+    sproj = torch.zeros(nsampl + flen - 1, **kw)
     for i in range(nsrc):
         sproj += torch.nn.functional.conv1d(reference_sources[i][:-flen + 1][None, None, ...],
                                             C[:, i].flip([0])[None, None, ...],

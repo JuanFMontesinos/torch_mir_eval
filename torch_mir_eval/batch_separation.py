@@ -268,6 +268,30 @@ def _fix_shape(x, n, axis):
     return z
 
 
+def _calc_G(sf, b, nsrc, flen, **kw):
+    G = torch.zeros((b, nsrc * flen, nsrc * flen), **kw)
+    for i in range(nsrc):
+        for j in range(nsrc):
+            ssf = sf[i] * torch.conj(sf[j])
+            ssf = torch.ifft(torch.view_as_real(ssf), signal_ndim=1)[..., 0]
+            ss = batch_toeplitz(
+                c=torch.cat((ssf[:, 0].unsqueeze(1), ssf.flip(1)[:, 0:flen - 1]), dim=-1),
+                r=ssf[:, :flen].unsqueeze(1))
+            G[:, i * flen: (i + 1) * flen, j * flen: (j + 1) * flen] = ss
+            G[:, j * flen: (j + 1) * flen, i * flen: (i + 1) * flen] = ss.permute(0, 2, 1)
+
+    return G
+
+
+def _calc_D(sf, sef, b, nsrc, flen, **kw):
+    D = torch.zeros(b, nsrc * flen, **kw)
+    for i in range(nsrc):
+        ssef = sf[i] * torch.conj(sef)
+        ssef = torch.ifft(torch.view_as_real(ssef), signal_ndim=1)[..., 0]
+        D[:, i * flen: (i + 1) * flen] = torch.cat((ssef[:, 0].unsqueeze(1), ssef.flip(1)[:, 0:flen - 1]), dim=-1)
+    return D
+
+
 def _project(reference_sources, estimated_source, flen):
     """Least-squares projection of estimated source on the subspace spanned by
     delayed versions of reference sources, with delays between 0 and flen-1
@@ -291,35 +315,22 @@ def _project(reference_sources, estimated_source, flen):
     sef = torch.rfft(es, signal_ndim=1, onesided=False)
     sef = torch.view_as_complex(sef)
     # inner products between delayed versions of reference_sources
-    G = torch.zeros((b, nsrc * flen, nsrc * flen), **kw)
-    for i in range(nsrc):
-        for j in range(nsrc):
-            ssf = sf[i] * torch.conj(sf[j])
-            ssf = torch.ifft(torch.view_as_real(ssf), signal_ndim=1)[..., 0]
-            ss = batch_toeplitz(
-                c=torch.cat((ssf[:, 0].unsqueeze(1), ssf.flip(1)[:, 0:flen - 1]), dim=-1),
-                r=ssf[:, :flen].unsqueeze(1))
-            G[:, i * flen: (i + 1) * flen, j * flen: (j + 1) * flen] = ss
-            G[:, j * flen: (j + 1) * flen, i * flen: (i + 1) * flen] = ss.permute(0, 2, 1)
+    G = _calc_G(sf, b, nsrc, flen, **kw)
     # inner products between estimated_source and delayed versions of
     # reference_sources
 
-    D = torch.zeros(b, nsrc * flen, **kw)
-    for i in range(nsrc):
-        ssef = sf[i] * torch.conj(sef)
-        ssef = torch.ifft(torch.view_as_real(ssef), signal_ndim=1)[..., 0]
-        D[:, i * flen: (i + 1) * flen] = torch.cat((ssef[:, 0].unsqueeze(1), ssef.flip(1)[:, 0:flen - 1]), dim=-1)
-
+    D = _calc_D(sf, sef, b, nsrc, flen, **kw)
     # Computing projection
     # Distortion filters
+    # TODO case in which only few of the Gs are singular but the rest are determined
     if all(torch.det(G) > 0.1):
         C = torch.solve(D.unsqueeze(-1), G).solution.reshape(b, nsrc, flen).permute(0, 2, 1)
     else:
         solutions = []
         for d, g in zip(D, G):
-            c = torch.lstsq(d.unsqueeze(1), g).solution.reshape(b, nsrc, flen).permute(0, 2, 1)
+            c = torch.lstsq(d.unsqueeze(1), g).solution.reshape(nsrc, flen).T
             solutions.append(c)
-        C = torch.stack(c)
+        C = torch.stack(solutions)
     # Filtering
     sproj = torch.zeros(b, nsampl + flen - 1, **kw)
     for j in range(b):
@@ -337,7 +348,7 @@ def _bss_source_crit(s_true, e_spat, e_interf, e_artif):
     """
     # energy ratios
     s_filt = s_true + e_spat
-    sdr = 10*torch.log10(torch.sum(s_filt ** 2, dim=1) / torch.sum((e_interf + e_artif) ** 2, dim=1))
-    sir = 10*torch.log10(torch.sum(s_filt ** 2, dim=1) / torch.sum(e_interf ** 2, dim=1))
-    sar = 10*torch.log10(torch.sum((s_filt + e_interf) ** 2, dim=1) / torch.sum(e_artif ** 2, dim=1))
+    sdr = 10 * torch.log10(torch.sum(s_filt ** 2, dim=1) / torch.sum((e_interf + e_artif) ** 2, dim=1))
+    sir = 10 * torch.log10(torch.sum(s_filt ** 2, dim=1) / torch.sum(e_interf ** 2, dim=1))
+    sar = 10 * torch.log10(torch.sum((s_filt + e_interf) ** 2, dim=1) / torch.sum(e_artif ** 2, dim=1))
     return sdr, sir, sar
