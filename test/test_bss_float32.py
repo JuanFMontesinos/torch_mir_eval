@@ -87,9 +87,9 @@ class TestBSS(unittest.TestCase):
     @unittest.skipIf(BACKPROP is False, 'System non backpropagable')
     def test_bss_eval_gradient_flow(self):
         with torch.autograd.detect_anomaly():
-            src = torch.from_numpy(self.src[:2].copy()).requires_grad_()
-            est = torch.from_numpy(self.est[:2].copy())
+            src = torch.from_numpy(self.src[:2].copy())
+            est = torch.from_numpy(self.est[:2].copy()).requires_grad_()
             sdr, sir, sar, _ = torch_mir_eval.bss_eval_sources(src, est, compute_permutation=False)
             scalar = sdr.mean()
             scalar.backward()
-            self.assertTrue(src.grad is not None)
+            self.assertTrue(est.grad is not None)

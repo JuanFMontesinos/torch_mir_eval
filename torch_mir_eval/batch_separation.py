@@ -193,9 +193,9 @@ def bss_eval_sources(reference_sources, estimated_sources,
     # TODO
     if compute_permutation:
         # compute criteria for all possible pair matches
-        sdr = torch.empty((nsrc, nsrc))
-        sir = torch.empty((nsrc, nsrc))
-        sar = torch.empty((nsrc, nsrc))
+        sdr = torch.empty((nsrc, nsrc, b))
+        sir = torch.empty((nsrc, nsrc, b))
+        sar = torch.empty((nsrc, nsrc, b))
         for jest in range(nsrc):
             for jtrue in range(nsrc):
                 s_true, e_spat, e_interf, e_artif = \
@@ -206,14 +206,22 @@ def bss_eval_sources(reference_sources, estimated_sources,
                     _bss_source_crit(s_true, e_spat, e_interf, e_artif)
 
         # select the best ordering
-        perms = list(itertools.permutations(list(range(nsrc))))
-        mean_sir = torch.empty(len(perms))
-        dum = torch.arange(nsrc)
-        for (i, perm) in enumerate(perms):
-            mean_sir[i] = torch.mean(sir[perm, dum])
-        popt = perms[torch.argmax(mean_sir)]
-        idx = (popt, dum)
-        return (sdr[idx], sir[idx], sar[idx], torch.Tensor(popt))
+        popt_list = []
+        sdr_list = []
+        sir_list = []
+        sar_list = []
+        for j in range(b):
+            perms = list(itertools.permutations(list(range(nsrc))))
+            mean_sir = torch.empty(len(perms))
+            dum = torch.arange(nsrc)
+            for (i, perm) in enumerate(perms):
+                mean_sir[i] = torch.mean(sir[perm, dum, j])
+            popt = perms[torch.argmax(mean_sir)]
+            sdr_list.append(sdr[popt, dum, j])
+            sir_list.append(sir[popt, dum, j])
+            sar_list.append(sar[popt, dum, j])
+            popt_list.append(torch.Tensor(popt))
+        return torch.stack(sdr_list), torch.stack(sir_list), torch.stack(sar_list), torch.stack(popt_list)
     else:
         # compute criteria for only the simple correspondence
         # (estimate 1 is estimate corresponding to reference source 1, etc.)
