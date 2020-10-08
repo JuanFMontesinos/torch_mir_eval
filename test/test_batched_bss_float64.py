@@ -66,3 +66,75 @@ class TestBatchedBSS(unittest.TestCase):
         self.assertTrue(torch.allclose(sir, sir_b[0]))
         self.assertTrue(torch.allclose(sar, sar_b[0]))
         self.assertTrue(torch.allclose(perm.long(), perm_b[0]))
+
+    def test_bss_eval_sources_permutation_true_ndim2_cpu(self):
+        src = torch.from_numpy(np.random.rand(2, 44000).astype(np.float64))
+        est = torch.from_numpy(np.random.rand(2, 44000).astype(np.float64))
+
+        bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
+        sdr_b, sir_b, sar_b, perm_b = bss_eval_sources(src, est, compute_permutation=True)
+        sdr, sir, sar, perm = torch_mir_eval.separation.bss_eval_sources(src, est, True)
+        self.assertTrue(torch.allclose(sdr, sdr_b))
+        self.assertTrue(torch.allclose(sir, sir_b))
+        self.assertTrue(torch.allclose(sar, sar_b))
+        self.assertTrue(torch.allclose(perm.long(), perm_b))
+
+    def test_bss_eval_sources_permutation_true_ndim3_cpu(self):
+        src = torch.from_numpy(np.random.rand(1, 2, 44000).astype(np.float64))
+        est = torch.from_numpy(np.random.rand(1, 2, 44000).astype(np.float64))
+
+        bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
+        sdr_b, sir_b, sar_b, perm_b = bss_eval_sources(src, est, compute_permutation=True)
+        sdr, sir, sar, perm = torch_mir_eval.separation.bss_eval_sources(src[0], est[0], True)
+        self.assertTrue(torch.allclose(sdr, sdr_b))
+        self.assertTrue(torch.allclose(sir, sir_b))
+        self.assertTrue(torch.allclose(sar, sar_b))
+        self.assertTrue(torch.allclose(perm.long(), perm_b))
+
+    def test_bss_eval_sources_permutation_true_ndim1_cpu(self):
+        src = torch.from_numpy(np.random.rand(44000).astype(np.float64))
+        est = torch.from_numpy(np.random.rand(44000).astype(np.float64))
+
+        bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
+        sdr_b, sir_b, sar_b, perm_b = bss_eval_sources(src, est, compute_permutation=True)
+        sdr, sir, sar, perm = torch_mir_eval.separation.bss_eval_sources(src, est, True)
+        self.assertTrue(torch.allclose(sdr, sdr_b))
+        self.assertTrue(torch.allclose(sir, sir_b))
+        self.assertTrue(torch.allclose(sar, sar_b))
+        self.assertTrue(torch.allclose(perm.long(), perm_b))
+
+    def test_bss_eval_sources_permutation_false_ndim2_cpu(self):
+        src = torch.from_numpy(np.random.rand(2, 44000).astype(np.float64))
+        est = torch.from_numpy(np.random.rand(2, 44000).astype(np.float64))
+
+        bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
+        sdr_b, sir_b, sar_b, perm_b = bss_eval_sources(src, est, compute_permutation=False)
+        sdr, sir, sar, perm = torch_mir_eval.separation.bss_eval_sources(src, est, False)
+        self.assertTrue(torch.allclose(sdr, sdr_b))
+        self.assertTrue(torch.allclose(sir, sir_b))
+        self.assertTrue(torch.allclose(sar, sar_b))
+        self.assertTrue(torch.allclose(perm.long(), perm_b))
+
+    def test_bss_eval_sources_permutation_false_ndim3_cpu(self):
+        src = torch.from_numpy(np.random.rand(1, 2, 44000).astype(np.float64))
+        est = torch.from_numpy(np.random.rand(1, 2, 44000).astype(np.float64))
+
+        bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
+        sdr_b, sir_b, sar_b, perm_b = bss_eval_sources(src, est, compute_permutation=False)
+        sdr, sir, sar, perm = torch_mir_eval.separation.bss_eval_sources(src[0], est[0], False)
+        self.assertTrue(torch.allclose(sdr, sdr_b))
+        self.assertTrue(torch.allclose(sir, sir_b))
+        self.assertTrue(torch.allclose(sar, sar_b))
+        self.assertTrue(torch.allclose(perm.long(), perm_b))
+
+    def test_bss_eval_sources_permutation_false_ndim1_cpu(self):
+        src = torch.from_numpy(np.random.rand(44000).astype(np.float64))
+        est = torch.from_numpy(np.random.rand(44000).astype(np.float64))
+
+        bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
+        sdr_b, sir_b, sar_b, perm_b = bss_eval_sources(src, est, compute_permutation=False)
+        sdr, sir, sar, perm = torch_mir_eval.separation.bss_eval_sources(src, est, False)
+        self.assertTrue(torch.allclose(sdr, sdr_b))
+        self.assertTrue(torch.allclose(sir, sir_b))
+        self.assertTrue(torch.allclose(sar, sar_b))
+        self.assertTrue(torch.allclose(perm.long(), perm_b))
