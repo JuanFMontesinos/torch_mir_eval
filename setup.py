@@ -17,7 +17,7 @@ setup(name='torch_mir_eval',
       author='Juan Montesinos',
       author_email='juanfelipe.montesinos@upf.edu',
       packages=find_packages(),
-      install_requires=['torch>=1.6', 'numpy'],
+      install_requires=['torch>=1.6'],
       classifiers=[
           "Programming Language :: Python :: 3", ],
       zip_safe=False)
