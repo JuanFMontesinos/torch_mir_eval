@@ -25,9 +25,9 @@ class TestBatchedBSS(unittest.TestCase):
         bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
         sdr_b, sir_b, sar_b, _ = bss_eval_sources(src, est, compute_permutation=False)
         sdr, sir, sar, _ = torch_mir_eval.separation.bss_eval_sources(src[0], est[0], False)
-        self.assertTrue(torch.allclose(sdr, sdr_b[0]))
-        self.assertTrue(torch.allclose(sir, sir_b[0]))
-        self.assertTrue(torch.allclose(sar, sar_b[0]))
+        self.assertTrue(torch.allclose(sdr, sdr_b[0], rtol=1e-4))
+        self.assertTrue(torch.allclose(sir, sir_b[0], rtol=1e-4))
+        self.assertTrue(torch.allclose(sar, sar_b[0], rtol=1e-4))
 
     def test_bss_eval_sources_permutation_true_cpu(self):
         src = torch.from_numpy(self.src.copy())
@@ -36,9 +36,9 @@ class TestBatchedBSS(unittest.TestCase):
         bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
         sdr_b, sir_b, sar_b, perm_b = bss_eval_sources(src, est, compute_permutation=True)
         sdr, sir, sar, perm = torch_mir_eval.separation.bss_eval_sources(src[0], est[0], True)
-        self.assertTrue(torch.allclose(sdr, sdr_b[0]))
-        self.assertTrue(torch.allclose(sir, sir_b[0]))
-        self.assertTrue(torch.allclose(sar, sar_b[0]))
+        self.assertTrue(torch.allclose(sdr, sdr_b[0], rtol=1e-4))
+        self.assertTrue(torch.allclose(sir, sir_b[0], rtol=1e-4))
+        self.assertTrue(torch.allclose(sar, sar_b[0], rtol=1e-4))
         self.assertTrue(torch.allclose(perm.long(), perm_b[0]))
 
     # GPU TESTS
@@ -50,9 +50,10 @@ class TestBatchedBSS(unittest.TestCase):
         bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
         sdr_b, sir_b, sar_b, _ = bss_eval_sources(src, est, compute_permutation=False)
         sdr, sir, sar, _ = torch_mir_eval.separation.bss_eval_sources(src[0], est[0], False)
-        self.assertTrue(torch.allclose(sdr, sdr_b[0]))
-        self.assertTrue(torch.allclose(sir, sir_b[0]))
-        self.assertTrue(torch.allclose(sar, sar_b[0]))
+        self.assertTrue(torch.allclose(sdr, sdr_b[0], rtol=1e-4))
+        self.assertTrue(torch.allclose(sir, sir_b[0], rtol=1e-4))
+        self.assertTrue(torch.allclose(sar, sar_b[0], rtol=1e-4))
+
 
     @unittest.skipIf(not torch.cuda.is_available(), 'Cuda is not available')
     def test_bss_eval_sources_permutation_true_cuda(self):
@@ -62,9 +63,9 @@ class TestBatchedBSS(unittest.TestCase):
         bss_eval_sources = torch_mir_eval.batch_separation.bss_eval_sources
         sdr_b, sir_b, sar_b, perm_b = bss_eval_sources(src, est, compute_permutation=True)
         sdr, sir, sar, perm = torch_mir_eval.separation.bss_eval_sources(src[0], est[0], True)
-        self.assertTrue(torch.allclose(sdr, sdr_b[0]))
-        self.assertTrue(torch.allclose(sir, sir_b[0]))
-        self.assertTrue(torch.allclose(sar, sar_b[0]))
+        self.assertTrue(torch.allclose(sdr, sdr_b[0], rtol=1e-4))
+        self.assertTrue(torch.allclose(sir, sir_b[0], rtol=1e-4))
+        self.assertTrue(torch.allclose(sar, sar_b[0], rtol=1e-4))
         self.assertTrue(torch.allclose(perm.long(), perm_b[0]))
 
     @unittest.skipIf(BACKPROP is False, 'System non backpropagable')

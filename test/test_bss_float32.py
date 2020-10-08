@@ -29,8 +29,9 @@ class TestBSS(unittest.TestCase):
         torch_timing = elapsed()
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
         self.assertTrue(np.allclose(w, torch_metrics))
-        print(f'bss_eval_sources test...\t'
-              f'Compute permutation: False\t'
+        print(f'bss_eval_sources test>\t'
+              f'permutation: False\t'
+              f'float32 \t'
               f'CPU: {mir_eval_timing:.3f}\t'
               f'torch-CPU: {torch_timing:.3f}')
 
@@ -46,8 +47,9 @@ class TestBSS(unittest.TestCase):
         torch_timing = elapsed()
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
         self.assertTrue(np.allclose(w, torch_metrics))
-        print(f'bss_eval_sources test...\t'
+        print(f'bss_eval_sources test>\t'
               f'compute_permutation: True\t'
+              f'float32 \t'
               f'CPU: {mir_eval_timing:.3f}\t'
               f'torch-CPU: {torch_timing:.3f}')
 
@@ -63,8 +65,9 @@ class TestBSS(unittest.TestCase):
         torch_metrics, torch_timing = bss_eval_sources(src, est, compute_permutation=False)
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
         self.assertTrue(np.allclose(w, torch_metrics))
-        print(f'bss_eval_sources test...\t'
+        print(f'bss_eval_sources test>\t'
               f'Compute permutation: False\t'
+              f'float32 \t'
               f'CPU: {mir_eval_timing:.3f}\t'
               f'GPU: {torch_timing:.3f}')
 
@@ -79,8 +82,9 @@ class TestBSS(unittest.TestCase):
         torch_metrics, torch_timing = bss_eval_sources(src, est, compute_permutation=True)
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
         self.assertTrue(np.allclose(w, torch_metrics))
-        print(f'bss_eval_sources test...\t'
+        print(f'bss_eval_sources test>\t'
               f'compute_permutation: True\t'
+              f'float32 \t'
               f'CPU: {mir_eval_timing:.3f}\t'
               f'GPU: {torch_timing:.3f}')
 
