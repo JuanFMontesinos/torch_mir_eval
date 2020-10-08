@@ -39,7 +39,7 @@ class TestBatchedBSS(unittest.TestCase):
         self.assertTrue(torch.allclose(sdr, sdr_b[0]))
         self.assertTrue(torch.allclose(sir, sir_b[0]))
         self.assertTrue(torch.allclose(sar, sar_b[0]))
-        self.assertTrue(torch.allclose(perm, perm_b[0]))
+        self.assertTrue(torch.allclose(perm.long(), perm_b[0]))
 
     # GPU TESTS
     @unittest.skipIf(not torch.cuda.is_available(), 'Cuda is not available')
