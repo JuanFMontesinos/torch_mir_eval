@@ -171,14 +171,14 @@ def bss_eval_sources(reference_sources, estimated_sources,
 
     # make sure the input is of shape (nsrc, nsampl)
     if estimated_sources.ndim == 1:
-        estimated_sources = estimated_sources[None, :]
-    elif estimated_sources.ndim == 2:
         estimated_sources = estimated_sources[None, None, :]
+    elif estimated_sources.ndim == 2:
+        estimated_sources = estimated_sources[None, :]
 
     if reference_sources.ndim == 1:
-        reference_sources = reference_sources[None, :]
-    elif reference_sources.ndim == 2:
         reference_sources = reference_sources[None, None, :]
+    elif reference_sources.ndim == 2:
+        reference_sources = reference_sources[None, :]
     validate(reference_sources, estimated_sources)
 
     # Permuting to shape nsrc,b,nsample for readability
@@ -214,9 +214,9 @@ def bss_eval_sources(reference_sources, estimated_sources,
         for (i, perm) in enumerate(perms):
             mean_sir[i] = torch.mean(sir[perm, dum].view(-1, b), dim=0)
         popt = torch.Tensor(perms)[torch.argmax(mean_sir, dim=0)].long()
-        sdr = sdr[popt, dum][batch_idx, :, batch_idx]
-        sir = sir[popt, dum][batch_idx, :, batch_idx]
-        sar = sar[popt, dum][batch_idx, :, batch_idx]
+        sdr = sdr[popt, dum][batch_idx, :, batch_idx].squeeze()
+        sir = sir[popt, dum][batch_idx, :, batch_idx].squeeze()
+        sar = sar[popt, dum][batch_idx, :, batch_idx].squeeze()
         return sdr, sir, sar, popt
     else:
         # compute criteria for only the simple correspondence
@@ -234,7 +234,7 @@ def bss_eval_sources(reference_sources, estimated_sources,
 
         # return the default permutation for compatibility
         popt = torch.arange(nsrc).unsqueeze(1).expand_as(sdr)
-        return sdr.T, sir.T, sar.T, popt.T
+        return sdr.T.squeeze(), sir.T.squeeze(), sar.T.squeeze(), popt.T.squeeze()
 
 
 def _bss_decomp_mtifilt(reference_sources: torch.Tensor, estimated_source: torch.Tensor, j: int, flen: int):

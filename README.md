@@ -29,19 +29,17 @@ Nvidia Quadro P6000, ADM Threadripper 1920X for a single run
 PIP install:  
 `pip install torch_mir_eval`  
 ----------------
-
-drop-in replacement version: 
+The easy way (work as drop-in replacement of batched):
 ```
-from torch_mir_eval.separation import bss_eval_sources
+from torch_mir_eval import bss_eval_sources
 N=4
 S=44000
 src = torch.rand(N,S).cuda()
 est = torch.rand(N,S).cuda()
 sdr,sir,sar,perm = bss_eval_sources(src,est,compute_permutation=True)
 ```
-Version allowing batches:
 ```
-from torch_mir_eval.batch_separation import bss_eval_sources
+from torch_mir_eval import bss_eval_sources
 B=3
 N=4
 S=44000

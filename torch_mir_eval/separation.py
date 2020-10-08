@@ -44,6 +44,7 @@ from .toeplitz import toeplitz
 
 # The maximum allowable number of sources (prevents insane computational load)
 MAX_SOURCES = 100
+#maintained for testing purposes
 
 __all__ = ['bss_eval_sources']
 
