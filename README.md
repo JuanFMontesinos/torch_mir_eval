@@ -29,7 +29,7 @@ Nvidia Quadro P6000, ADM Threadripper 1920X for a single run
 PIP install:  
 `pip install torch_mir_eval`  
 ----------------
-The easy way (work as drop-in replacement of batched):
+The easy way (work as drop-in replacement or batches):
 ```
 from torch_mir_eval import bss_eval_sources
 N=4
@@ -49,11 +49,11 @@ sdr,sir,sar,perm = bss_eval_sources(src,est,compute_permutation=True)
 ```
 Just pass tensors instead of numpy arrays. Everything else is the same.  
 For the batched version we follow pytorch convention of batch first.
-Therefore the expecter format is `b, nsrc, samples`
+Therefore the expected format is `b, nsrc, samples`
 
 ## How to contribute  
 - Implementing any other function from the original `mir_eval`
-
+- Addresing https://github.com/JuanFMontesinos/torch_mir_eval/blob/377fe51a6b08d43af63d6b7f7805578515713a92/torch_mir_eval/batch_separation.py#L329-L333
 ## Changelog  
 - Version 0.1: `bss_eval_sources` function implemented  
 - Version 0.2: `bss_eval_sources` is now backpropagable. There algorithm now accepts batches. 
