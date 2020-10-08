@@ -136,10 +136,10 @@ def bss_eval_sources(reference_sources, estimated_sources,
 
     Parameters
     ----------
-    reference_sources : torch.Tensor, shape=(nsrc, nsampl)
+    reference_sources : torch.Tensor, shape=(b, nsrc, nsampl)
         matrix containing true sources (must have same shape as
         estimated_sources)
-    estimated_sources : torch.Tensor, shape=(nsrc, nsampl)
+    estimated_sources : torch.Tensor, shape=(b, nsrc, nsampl)
         matrix containing estimated sources (must have same shape as
         reference_sources)
     compute_permutation : bool, optional
@@ -147,13 +147,13 @@ def bss_eval_sources(reference_sources, estimated_sources,
 
     Returns
     -------
-    sdr : torch.Tensor, shape=(nsrc,)
+    sdr : torch.Tensor, shape=(b, nsrc)
         vector of Signal to Distortion Ratios (SDR)
-    sir : torch.Tensor, shape=(nsrc,)
+    sir : torch.Tensor, shape=(b, nsrc)
         vector of Source to Interference Ratios (SIR)
-    sar : torch.Tensor, shape=(nsrc,)
+    sar : torch.Tensor, shape=(b, nsrc)
         vector of Sources to Artifacts Ratios (SAR)
-    perm : torch.Tensor, shape=(nsrc,)
+    perm : torch.Tensor, shape=(b, nsrc)
         vector containing the best ordering of estimated sources in
         the mean SIR sense (estimated source number ``perm[j]`` corresponds to
         true source number ``j``). Note: ``perm`` will be ``[0, 1, ...,
@@ -188,9 +188,8 @@ def bss_eval_sources(reference_sources, estimated_sources,
     if reference_sources.size == 0 or estimated_sources.size == 0:
         return torch.Tensor([]), torch.Tensor([]), torch.Tensor([]), torch.Tensor([])
 
-    nsrc, b, _ = estimated_sources.shape
+    nsrc, b, nsamples = estimated_sources.shape
 
-    # TODO
     if compute_permutation:
         # compute criteria for all possible pair matches
         sdr = torch.empty((nsrc, nsrc, b))
@@ -202,26 +201,23 @@ def bss_eval_sources(reference_sources, estimated_sources,
                     _bss_decomp_mtifilt(reference_sources,
                                         estimated_sources[jest],
                                         jtrue, 512)
+                # Compute this outside the loop is memory greedy
+                # Storing (nsrc, nsrc, b) vs (nsrc, nsrc, b, nsamples)
                 sdr[jest, jtrue], sir[jest, jtrue], sar[jest, jtrue] = \
                     _bss_source_crit(s_true, e_spat, e_interf, e_artif)
 
         # select the best ordering
-        popt_list = []
-        sdr_list = []
-        sir_list = []
-        sar_list = []
-        for j in range(b):
-            perms = list(itertools.permutations(list(range(nsrc))))
-            mean_sir = torch.empty(len(perms))
-            dum = torch.arange(nsrc)
-            for (i, perm) in enumerate(perms):
-                mean_sir[i] = torch.mean(sir[perm, dum, j])
-            popt = perms[torch.argmax(mean_sir)]
-            sdr_list.append(sdr[popt, dum, j])
-            sir_list.append(sir[popt, dum, j])
-            sar_list.append(sar[popt, dum, j])
-            popt_list.append(torch.Tensor(popt))
-        return torch.stack(sdr_list), torch.stack(sir_list), torch.stack(sar_list), torch.stack(popt_list)
+        batch_idx = list(range(b))
+        perms = list(itertools.permutations(list(range(nsrc))))
+        mean_sir = torch.empty(len(perms), b)
+        dum = torch.arange(nsrc)
+        for (i, perm) in enumerate(perms):
+            mean_sir[i] = torch.mean(sir[perm, dum].view(-1, b), dim=0)
+        popt = torch.Tensor(perms)[torch.argmax(mean_sir, dim=0)].long()
+        sdr = sdr[popt, dum][batch_idx, :, batch_idx]
+        sir = sir[popt, dum][batch_idx, :, batch_idx]
+        sar = sar[popt, dum][batch_idx, :, batch_idx]
+        return sdr, sir, sar, popt
     else:
         # compute criteria for only the simple correspondence
         # (estimate 1 is estimate corresponding to reference source 1, etc.)
@@ -238,7 +234,7 @@ def bss_eval_sources(reference_sources, estimated_sources,
 
         # return the default permutation for compatibility
         popt = torch.arange(nsrc).unsqueeze(1).expand_as(sdr)
-        return sdr.T, sir.T, sar.T, popt
+        return sdr.T, sir.T, sar.T, popt.T
 
 
 def _bss_decomp_mtifilt(reference_sources: torch.Tensor, estimated_source: torch.Tensor, j: int, flen: int):
@@ -356,7 +352,7 @@ def _bss_source_crit(s_true, e_spat, e_interf, e_artif):
     """
     # energy ratios
     s_filt = s_true + e_spat
-    sdr = 10 * torch.log10(torch.sum(s_filt ** 2, dim=1) / torch.sum((e_interf + e_artif) ** 2, dim=1))
-    sir = 10 * torch.log10(torch.sum(s_filt ** 2, dim=1) / torch.sum(e_interf ** 2, dim=1))
-    sar = 10 * torch.log10(torch.sum((s_filt + e_interf) ** 2, dim=1) / torch.sum(e_artif ** 2, dim=1))
+    sdr = 10 * torch.log10(torch.sum(s_filt ** 2, dim=-1) / torch.sum((e_interf + e_artif) ** 2, dim=-1))
+    sir = 10 * torch.log10(torch.sum(s_filt ** 2, dim=-1) / torch.sum(e_interf ** 2, dim=-1))
+    sar = 10 * torch.log10(torch.sum((s_filt + e_interf) ** 2, dim=-1) / torch.sum(e_artif ** 2, dim=-1))
     return sdr, sir, sar
