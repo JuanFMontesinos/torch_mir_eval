@@ -23,7 +23,7 @@ class TestBSS(unittest.TestCase):
         with elapsed_timer() as elapsed:
             w = mir_eval.separation.bss_eval_sources(self.src, self.est, compute_permutation=False)
         mir_eval_timing = elapsed()
-        bss_eval_sources = torch_mir_eval.bss_eval_sources
+        bss_eval_sources = torch_mir_eval.separation.bss_eval_sources
         with elapsed_timer() as elapsed:
             torch_metrics = bss_eval_sources(src, est, compute_permutation=False)
         torch_timing = elapsed()
@@ -41,7 +41,7 @@ class TestBSS(unittest.TestCase):
         with elapsed_timer() as elapsed:
             w = mir_eval.separation.bss_eval_sources(self.src, self.est, compute_permutation=True)
         mir_eval_timing = elapsed()
-        bss_eval_sources = torch_mir_eval.bss_eval_sources
+        bss_eval_sources = torch_mir_eval.separation.bss_eval_sources
         with elapsed_timer() as elapsed:
             torch_metrics = bss_eval_sources(src, est, compute_permutation=True)
         torch_timing = elapsed()
@@ -61,7 +61,7 @@ class TestBSS(unittest.TestCase):
         with elapsed_timer() as elapsed:
             w = mir_eval.separation.bss_eval_sources(self.src, self.est, compute_permutation=False)
         mir_eval_timing = elapsed()
-        bss_eval_sources = cuda_timing(torch_mir_eval.bss_eval_sources)
+        bss_eval_sources = cuda_timing(torch_mir_eval.separation.bss_eval_sources)
         torch_metrics, torch_timing = bss_eval_sources(src, est, compute_permutation=False)
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
         self.assertTrue(np.allclose(w, torch_metrics))
@@ -78,7 +78,7 @@ class TestBSS(unittest.TestCase):
         with elapsed_timer() as elapsed:
             w = mir_eval.separation.bss_eval_sources(self.src, self.est, compute_permutation=True)
         mir_eval_timing = elapsed()
-        bss_eval_sources = cuda_timing(torch_mir_eval.bss_eval_sources)
+        bss_eval_sources = cuda_timing(torch_mir_eval.separation.bss_eval_sources)
         torch_metrics, torch_timing = bss_eval_sources(src, est, compute_permutation=True)
         torch_metrics = [x.cpu().numpy() for x in torch_metrics]
         self.assertTrue(np.allclose(w, torch_metrics))
@@ -93,7 +93,7 @@ class TestBSS(unittest.TestCase):
         with torch.autograd.detect_anomaly():
             src = torch.from_numpy(self.src[:2].copy())
             est = torch.from_numpy(self.est[:2].copy()).requires_grad_()
-            sdr, sir, sar, _ = torch_mir_eval.bss_eval_sources(src, est, compute_permutation=False)
+            sdr, sir, sar, _ = torch_mir_eval.separation.bss_eval_sources(src, est, compute_permutation=False)
             scalar = sdr.mean()
             scalar.backward()
             self.assertTrue(est.grad is not None)
