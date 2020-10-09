@@ -21,8 +21,8 @@ Nvidia Quadro P6000, ADM Threadripper 1920X for a single run
 ----------------
 .bss_eval_sources test>	   permutation: False	float64 	CPU: 3.106	torch-CPU: 4.471
 .bss_eval_sources test>	   permutation: False	float64 	CPU: 3.489	GPU: 1.662
-.bss_eval_sources test>	   permutation: False	float64 	CPU: 15.875	torch-CPU: 22.419
-.bss_eval_sources test>	   permutation: False	float64 	CPU: 15.141	GPU: 8.175
+.bss_eval_sources test>	   permutation: True	float64 	CPU: 15.875	torch-CPU: 22.419
+.bss_eval_sources test>	   permutation: True	float64 	CPU: 15.141	GPU: 8.175
 *Sources vary across tests  
 ```
 ## Usage
