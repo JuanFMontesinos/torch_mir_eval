@@ -39,6 +39,7 @@ import warnings
 from math import ceil, log2
 
 import torch
+from torch.fft import rfft,ifft,fft
 
 from .toeplitz import toeplitz
 
@@ -268,7 +269,7 @@ def _calc_G(sf, nsrc, flen, **kw):
     for i in range(nsrc):
         for j in range(nsrc):
             ssf = sf[i] * torch.conj(sf[j])
-            ssf = torch.ifft(torch.view_as_real(ssf), signal_ndim=1)[..., 0]
+            ssf = ifft(ssf).real
             ss = toeplitz(torch.cat((ssf[0].unsqueeze(0), ssf.flip(0)[0:flen - 1]), dim=0), r=ssf[:flen])
             G[i * flen: (i + 1) * flen, j * flen: (j + 1) * flen] = ss
             G[j * flen: (j + 1) * flen, i * flen: (i + 1) * flen] = ss.T
@@ -280,7 +281,7 @@ def _calc_D(sf, sef, nsrc, flen, **kw):
     D = torch.zeros(nsrc * flen, **kw)
     for i in range(nsrc):
         ssef = sf[i] * torch.conj(sef)
-        ssef = torch.ifft(torch.view_as_real(ssef), signal_ndim=1)[..., 0]
+        ssef = ifft(ssef).real
         D[i * flen: (i + 1) * flen] = torch.cat((ssef[0].unsqueeze(0), ssef.flip(0)[0:flen - 1]), dim=0)
     return D
 
@@ -299,11 +300,9 @@ def _project(reference_sources, estimated_source, flen):
     estimated_source = torch.cat((estimated_source, torch.zeros(flen - 1, **kw)), dim=0)
     n_fft = int(2 ** ceil(log2(nsampl + flen - 1.)))
     rs = _fix_shape(reference_sources, n_fft, -1)  # Padding like scipy.fftpack.fft does
-    sf = torch.rfft(rs, signal_ndim=1, onesided=False)
-    sf = torch.view_as_complex(sf)
+    sf = fft(rs)
     es = _fix_shape(estimated_source, n_fft, -1)  # Padding like scipy.fftpack.fft does
-    sef = torch.rfft(es, signal_ndim=1, onesided=False)
-    sef = torch.view_as_complex(sef)
+    sef = fft(es)
     # inner products between delayed versions of reference_sources
     D = _calc_D(sf, sef, nsrc, flen, **kw)
     # inner products between estimated_source and delayed versions of
