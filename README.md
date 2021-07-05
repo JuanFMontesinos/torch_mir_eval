@@ -59,6 +59,9 @@ Therefore the expected format is `b, nsrc, samples`
 - Version 0.3: Incorporates new PyTorch's fft package for versions>1.7 and deprecates `torch.rfft` and  
                 `torch.ifft` following pytorch's roadmap.  
 
+## Warning  
+It seems there may be differences between GPU and CPU results in some corner cases (due to pytorch issues). CPU version seems to provide good results.  CI unit tests are carried out for cpu tensors.  
+
 ## Current available functions  
 * Separation: 
   - `mir_eval.separation.bss_eval_sources`
