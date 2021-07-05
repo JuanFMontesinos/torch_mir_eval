@@ -36,10 +36,10 @@ References
 
 import itertools
 import warnings
-from math import log2, ceil
 
 import torch
-from torch.fft import fft,ifft
+from math import log2, ceil
+from torch.fft import fft, ifft
 
 from .toeplitz import batch_toeplitz
 
@@ -327,11 +327,11 @@ def _project(reference_sources, estimated_source, flen):
     # Distortion filters
     # TODO case in which only few of the Gs are singular but the rest are determined
     if all(torch.det(G) > 0.1):
-        C = torch.solve(D.unsqueeze(-1), G).solution.reshape(b, nsrc, flen).permute(0, 2, 1)
+        C = torch.linalg.solve(G, D.unsqueeze(-1)).reshape(b, nsrc, flen).permute(0, 2, 1)
     else:
         solutions = []
         for d, g in zip(D, G):
-            c = torch.lstsq(d.unsqueeze(1), g).solution.reshape(nsrc, flen).T
+            c = torch.linalg.lstsq(g, d.unsqueeze(1)).solution.reshape(nsrc, flen).T
             solutions.append(c)
         C = torch.stack(solutions)
     # Filtering

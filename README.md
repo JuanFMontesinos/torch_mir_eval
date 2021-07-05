@@ -14,14 +14,14 @@ Nvidia RTX 3090, ADM Threadripper 1920X for a single run
 
 
 ```
-.bss_eval_sources test>	permutation: False	float32 	CPU: 3.004	torch-CPU: 2.512
-.bss_eval_sources test>	Compute permutation: False	float32 	CPU: 2.590	GPU: 1.616
-.bss_eval_sources test>	compute_permutation: True	float32 	CPU: 13.195	torch-CPU: 12.326
-.bss_eval_sources test>	compute_permutation: True	float32 	CPU: 13.407	GPU: 7.779
-.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 2.615	torch-CPU: 4.612
-.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 2.578	GPU: 1.941
-.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 12.949	torch-CPU: 22.422
-.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 13.142	GPU: 9.404
+.bss_eval_sources test>	permutation: False	float32 	CPU: 2.582	torch-CPU: 1.670
+.bss_eval_sources test>	Compute permutation: False	float32 	CPU: 2.632	GPU: 1.286
+.bss_eval_sources test>	compute_permutation: True	float32 	CPU: 12.877	torch-CPU: 8.289
+.bss_eval_sources test>	compute_permutation: True	float32 	CPU: 12.768	GPU: 6.107
+.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 2.576	torch-CPU: 2.793
+.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 2.610	GPU: 1.752
+.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 12.979	torch-CPU: 13.382
+.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 18.769	GPU: 8.433
 *Sources vary across tests  
 ```
 ## Usage
@@ -58,9 +58,8 @@ Therefore the expected format is `b, nsrc, samples`
 - Version 0.2: `bss_eval_sources` is now backpropagable. There algorithm now accepts batches. 
 - Version 0.3: Incorporates new PyTorch's fft package for versions>1.7 and deprecates `torch.rfft` and  
                 `torch.ifft` following pytorch's roadmap.  
-
-## Warning  
-It seems there may be differences between GPU and CPU results in some corner cases (due to pytorch issues). CPU version seems to provide good results.  CI unit tests are carried out for cpu tensors.  
+- Version 0.4: Support for PyTorch 1.9 onwards and the new linalg package which deprecates previous algebra solvers.      
+    - Partially Solves inconsistencies between GPU results and CPU results shown at https://github.com/JuanFMontesinos/torch_mir_eval/issues/5   
 
 ## Current available functions  
 * Separation: 

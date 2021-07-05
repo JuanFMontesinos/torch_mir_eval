@@ -36,16 +36,16 @@ References
 
 import itertools
 import warnings
-from math import ceil, log2
 
 import torch
-from torch.fft import rfft,ifft,fft
+from math import ceil, log2
+from torch.fft import ifft, fft
 
 from .toeplitz import toeplitz
 
 # The maximum allowable number of sources (prevents insane computational load)
 MAX_SOURCES = 100
-#maintained for testing purposes
+# maintained for testing purposes
 
 __all__ = ['bss_eval_sources']
 
@@ -312,9 +312,9 @@ def _project(reference_sources, estimated_source, flen):
     # Computing projection
     # Distortion filters
     if torch.det(G) > 0.1:
-        C = torch.solve(D.unsqueeze(1), G).solution.reshape(nsrc, flen).T
+        C = torch.linalg.solve(G, D.unsqueeze(1)).reshape(nsrc, flen).T
     else:
-        C = torch.lstsq(D.unsqueeze(1), G).solution.reshape(nsrc, flen).T
+        C = torch.linalg.lstsq(G,D.unsqueeze(1)).solution.reshape(nsrc, flen).T
     # Filtering
     sproj = torch.zeros(nsampl + flen - 1, **kw)
     for i in range(nsrc):
