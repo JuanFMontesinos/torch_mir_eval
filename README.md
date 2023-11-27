@@ -14,14 +14,15 @@ Nvidia RTX 3090, ADM Threadripper 1920X for a single run
 
 
 ```
-.bss_eval_sources test>	permutation: False	float32 	CPU: 2.582	torch-CPU: 1.670
-.bss_eval_sources test>	Compute permutation: False	float32 	CPU: 2.632	GPU: 1.286
-.bss_eval_sources test>	compute_permutation: True	float32 	CPU: 12.877	torch-CPU: 8.289
-.bss_eval_sources test>	compute_permutation: True	float32 	CPU: 12.768	GPU: 6.107
-.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 2.576	torch-CPU: 2.793
-.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 2.610	GPU: 1.752
-.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 12.979	torch-CPU: 13.382
-.bss_eval_sources test>	Compute permutation: False	float64 	CPU: 18.769	GPU: 8.433
+Pytorch 2.1.1
+.bss_eval_sources test> permutation:         False      float32         CPU: 1.073      torch-CPU: 0.813
+.bss_eval_sources test> Compute permutation: False      float32         CPU: 1.067      GPU: 0.592
+.bss_eval_sources test> compute_permutation: True       float32         CPU: 5.224      torch-CPU: 3.737
+.bss_eval_sources test> compute_permutation: True       float32         CPU: 5.417      GPU: 2.883
+.bss_eval_sources test> Compute permutation: False      float64         CPU: 1.087      torch-CPU: 1.710
+.bss_eval_sources test> Compute permutation: False      float64         CPU: 1.115      GPU: 0.940
+.bss_eval_sources test> Compute permutation: False      float64         CPU: 5.390      torch-CPU: 8.451
+.bss_eval_sources test> Compute permutation: False      float64         CPU: 5.558      GPU: 4.623
 *Sources vary across tests  
 ```
 ## Usage
